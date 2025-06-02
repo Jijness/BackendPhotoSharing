@@ -1,0 +1,27 @@
+{
+  "name": "nodejs-sandbox",
+  "version": "1.0.0",
+  "description": "Node.js server project",
+  "license": "ISC",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "keywords": [],
+  "author": "Jijness",
+  "devDependencies": {
+    "@types/node": "22.15.18",
+    "nodemon": "^3.1.5"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "2.8.5",
+    "dotenv": "16.5.0",
+    "express": "5.1.0",
+    "express-fileupload": "^1.5.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "8.15.0"
+  }
+}
