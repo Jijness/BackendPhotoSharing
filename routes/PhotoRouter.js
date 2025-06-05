@@ -176,5 +176,37 @@ photoRoute.delete("/:photoId", checkAuth, async (req, res) => {
         res.status(500).json({ message: "Error while deleting photo", error: err.message });
     }
 });
+photoRoute.delete("/comments/:photoId/:commentId", checkAuth, async (req, res) => {
+    try {
+        const { photoId, commentId } = req.params;
+        const userId = req.user._id; // Lấy từ middleware checkAuth
+
+        const photo = await Photos.findById(photoId);
+
+        if (!photo) {
+            return res.status(404).json({ message: "Photo not found." });
+        }
+
+        // Tìm comment trong mảng comments của ảnh
+        const commentToDelete = photo.comments.id(commentId);
+
+        if (!commentToDelete) {
+            return res.status(404).json({ message: "Comment not found." });
+        }
+
+        // Kiểm tra xem người dùng hiện tại có phải là chủ của comment không
+        if (commentToDelete.user_id.toString() !== userId.toString()) {
+            return res.status(403).json({ message: "You are not authorized to delete this comment." });
+        }
+
+        // Xóa comment khỏi mảng
+        commentToDelete.remove(); // Phương thức remove() của subdocument trong Mongoose
+        await photo.save(); // Lưu lại thay đổi vào database
+
+        res.status(200).json({ message: "Comment deleted successfully." });
+    } catch (err) {
+        res.status(500).json({ message: "Error deleting comment", error: err.message });
+    }
+});
 
 export default photoRoute;
