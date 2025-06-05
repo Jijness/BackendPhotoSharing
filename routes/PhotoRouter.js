@@ -8,6 +8,11 @@ import fs from "fs/promises";
 import { fileURLToPath } from 'url';
 
 const photoRoute = Router();
+// Hàm trợ giúp để lấy __dirname trong ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const imagesDir = path.join(__dirname, '..', 'images');
+
 
 photoRoute.get("/", async (request, response) => {
     const photos = await Photos.find({})
@@ -113,10 +118,10 @@ photoRoute.post("/new", checkAuth, async (req, res) => {
         const ogirinalFileName = photoFile.name;
         const fileExtension = path.extname(ogirinalFileName);
         const uniqueFileName = `${Date.now()}-${Math.random() * 1E9}${fileExtension}`;
-        // Duong dan de luu file tren server
-        const __filename = fileURLToPath(import.meta.url);
-        const __dirname = path.dirname(__filename);
-        const imagesDir = path.join(__dirname, '..', 'images');
+        // Duong dan de luu file tren server (da khai bao o tren)
+        // const __filename = fileURLToPath(import.meta.url);
+        // const __dirname = path.dirname(__filename);
+        // const imagesDir = path.join(__dirname, '..', 'images');
         await fs.mkdir(imagesDir, { recursive: true });
 
         const uploadPath = path.join(imagesDir, uniqueFileName);
@@ -144,5 +149,32 @@ photoRoute.post("/new", checkAuth, async (req, res) => {
         }
     }
 })
+
+photoRoute.delete("/:photoId", checkAuth, async (req, res) => {
+    try {
+        const photoId = req.params.photoId;
+        const userId = req.user._id; // tu middleware
+        const photo = await Photos.findById(photoId);
+        if (!photo) {
+            return res.status(404).json({ message: "Photo not found" });
+        }
+        if (photo.user_id.toString() !== userId) {
+            return res.status(403).json({ message: "You can only delete your own photo" });
+        }
+        await Photos.deleteOne({ _id: photoId });
+        // Xoa anh that tren server
+        const filePath = path.join(imagesDir, photo.file_name);
+        await fs.unlink(filePath);
+        console.log(`Deleted: ${filePath}`);
+        res.status(200).json({ message: "Deleted (DB and server)" });
+    } catch (err) {
+        if (err.name === 'CastError' && err.kind === 'ObjectId') {
+            return res.status(400).json({ message: "Invalid Photo ID format." });
+        } else if (err === 'ENOENT') {
+            console.log(`File not found on disk, but removed from DB`);
+        }
+        res.status(500).json({ message: "Error while deleting photo", error: err.message });
+    }
+});
 
 export default photoRoute;
